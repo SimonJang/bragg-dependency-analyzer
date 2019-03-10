@@ -1,8 +1,8 @@
 import json
-from pprint import pprint
 import re
 import sys
 import os
+from pprint import pprint
 
 # Analyze a bragg project and retrieve the dependencies
 BRAGG_DEPENDENCY = 'bragg-route-invoke'
@@ -25,8 +25,14 @@ def scan_line_with_alias(line: str, alias: str) -> (str, str, str):
     return
 
 
+def scan_line_with_dep_name(line: str, dep_name: str) -> (str, str, str):
+    if dep_name not in line:
+        return
+    print(line)
+
+
 def map_dependencies(path: str) -> {str: str}:
-    with open.path(path) as json_file:
+    with open(path) as json_file:
         data = json.load(json_file)
         return data['production']
 
@@ -43,32 +49,38 @@ def analyze():
 
     if os.path.isfile(path):
         if JSON_EXTENSION in os.path.basename(path):
-            pprint('Dependencies', map_dependencies(path))
+            dependencyMap = map_dependencies(path)
 
-        # check bragg dependency
-        with open(path, 'r') as file:
-            if BRAGG_DEPENDENCY is False in file.read():
-                print('No dependency discovered in file {0}'.format(path))
-                return
-            else:
-                print('Bragg dependency detected in file {0}'.format(path))
-                print('Scanning file for dependency')
-
-                deps = []
-                alias = None
-
+            with open(path, 'r') as file:
                 for line in file:
-                    result = discover_import_name(line)
+                    for key, value in dependencyMap:
+                        scan_line_with_dep_name(line, key)
+        else:
+            # check bragg dependency
+            with open(path, 'r') as file:
+                if BRAGG_DEPENDENCY is False in file.read():
+                    print('No dependency discovered in file {0}'.format(path))
+                    return
+                else:
+                    print('Bragg dependency detected in file {0}'.format(path))
+                    print('Scanning file for dependency')
 
-                    if result is not None:
-                        alias = result
-                        break
+                    deps = []
+                    alias = None
 
-                for line in file:
-                    scan_line_with_alias(line, alias)
+                    for line in file:
+                        result = discover_import_name(line)
+
+                        if result is not None:
+                            alias = result
+                            break
+
+                    for line in file:
+                        scan_line_with_alias(line, alias)
 
     else:
         print('{0} is a directory. Scanning...'.format(path))
 
 
 analyze()
+
