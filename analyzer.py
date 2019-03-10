@@ -1,86 +1,116 @@
 import json
+import glob
 import re
 import sys
 import os
 from pprint import pprint
 
-# Analyze a bragg project and retrieve the dependencies
 BRAGG_DEPENDENCY = 'bragg-route-invoke'
 JSON_EXTENSION = '.json'
+SERVICE_DEPENDENCY = ':v0'
 
 
-def discover_import_name(line: str) -> str:
-    if BRAGG_DEPENDENCY is False in line:
-        return
-    [_, __, ___, alias, *_] = line.split(' ')
-    print('Alias', alias)
-    return alias
+def scan_line_with_dep_name(lines: [str], dep_name: {str: str}) -> [str]:
+    matches = []
 
+    for line in lines:
+        for key, _ in dep_name.items():
+            if key in line:
+                matches.append(line)
 
-def scan_line_with_alias(line: str, alias: str) -> (str, str, str):
-    if alias not in line:
-        return None
-    statement = re.search('invoke.[a-z]{3,4}\([a-zA-z\.\,\'\s]*\)', line)
-    print('regex result', statement)
-    return
-
-
-def scan_line_with_dep_name(line: str, dep_name: str) -> (str, str, str):
-    if dep_name not in line:
-        return
-    print(line)
+    return matches
 
 
 def map_dependencies(path: str) -> {str: str}:
+    filtered_dependencies = {}
+
     with open(path) as json_file:
         data = json.load(json_file)
-        return data['production']
+
+        for key, value in data['production'].items():
+            if SERVICE_DEPENDENCY in value:
+                filtered_dependencies[key] = value
+
+    return filtered_dependencies
+
+
+def clean_data(dependency_list: [str]) -> [str]:
+    cleaned_data = [
+        dependency
+        .replace('\t', '')
+        .replace('\n', '')
+        for dependency in dependency_list
+    ]
+
+    regex = re.compile(r'\([a-zA-z\.\,\'\s\n]{1,}\)')
+
+    matches = []
+
+    for item in cleaned_data:
+        if regex.search(item):
+            matches.append(regex.search(item).group())
+
+    return [
+        line
+        .replace('(', '')
+        .replace(')', '')
+        .replace('\'', '')
+        for line in matches
+    ]
+
+
+def map_to_dep_dict(invokes: [str], deps: {str: str}) -> {str: str}:
+    resource_path_map = {}
+    for invoke in invokes:
+        [alias, resource_path, *_] = invoke.split(',')
+
+        for key in deps.keys():
+            if key in alias:
+                resource_path_map[key] = (resource_path_map.get(key) or []) + [resource_path]
+
+    return resource_path_map
 
 
 def analyze():
-    print(sys.argv)
-    # Target dir
     [*_, target] = sys.argv;
-
-    print(target)
     path = target
+
     if os.path.isabs(target) is False:
         path = os.path.join(os.getcwd(), target)
 
     if os.path.isfile(path):
-        if JSON_EXTENSION in os.path.basename(path):
-            dependencyMap = map_dependencies(path)
+        raise Exception('This analyzer can only analyze bragg directories')
 
-            with open(path, 'r') as file:
-                for line in file:
-                    for key, value in dependencyMap:
-                        scan_line_with_dep_name(line, key)
-        else:
-            # check bragg dependency
-            with open(path, 'r') as file:
-                if BRAGG_DEPENDENCY is False in file.read():
-                    print('No dependency discovered in file {0}'.format(path))
-                    return
-                else:
-                    print('Bragg dependency detected in file {0}'.format(path))
-                    print('Scanning file for dependency')
+    mapped_dependencies = {}
+    analyzed_lines = []
 
-                    deps = []
-                    alias = None
+    for deps_file_path in glob.iglob('{0}/**/config.json'.format(path), recursive=True):
+        mapped_dependencies = map_dependencies(deps_file_path)
 
-                    for line in file:
-                        result = discover_import_name(line)
+    if len(mapped_dependencies.keys()) == 0:
+        print('No bragg dependencies')
 
-                        if result is not None:
-                            alias = result
-                            break
+        return
 
-                    for line in file:
-                        scan_line_with_alias(line, alias)
+    for source_file in glob.iglob('{0}/**/*.ts'.format(path), recursive=True):
+        with open(source_file, 'r') as file:
+            if BRAGG_DEPENDENCY is False in file:
+                file.close()
+                continue
+            else:
+                analyzed_lines = analyzed_lines + scan_line_with_dep_name(file.readlines(), mapped_dependencies)
+                file.close()
 
-    else:
-        print('{0} is a directory. Scanning...'.format(path))
+    cleaned_data = clean_data(analyzed_lines)
+    service_map = map_to_dep_dict(cleaned_data, mapped_dependencies)
+
+    destination_path = os.path.join(os.getcwd(), 'analysis-result.json')
+    with open(destination_path, 'w') as destination:
+        json.dump(service_map, destination)
+
+    pprint(service_map)
+
+    return
 
 
 analyze()
-
