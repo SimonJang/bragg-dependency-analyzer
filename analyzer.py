@@ -30,6 +30,8 @@ def map_dependencies(path: str) -> {str: str}:
         for key, value in data['production'].items():
             if SERVICE_DEPENDENCY in value:
                 filtered_dependencies[key] = value
+    
+    print(filtered_dependencies)
 
     return filtered_dependencies
 
@@ -42,6 +44,8 @@ def clean_data(dependency_list: [str]) -> [str]:
         for dependency in dependency_list
     ]
 
+    pprint(cleaned_data)
+
     regex = re.compile(r'\([a-zA-z\.\,\'\s\n]{1,}\)')
 
     matches = []
@@ -49,6 +53,8 @@ def clean_data(dependency_list: [str]) -> [str]:
     for item in cleaned_data:
         if regex.search(item):
             matches.append(regex.search(item).group())
+
+    pprint(matches)
 
     return [
         line
@@ -62,17 +68,20 @@ def clean_data(dependency_list: [str]) -> [str]:
 def map_to_dep_dict(invokes: [str], deps: {str: str}) -> {str: str}:
     resource_path_map = {}
     for invoke in invokes:
-        [alias, resource_path, *_] = invoke.split(',')
+        try:
+            [alias, resource_path, *_] = invoke.split(',')
 
-        for key in deps.keys():
-            if key in alias:
-                resource_path_map[key] = (resource_path_map.get(key) or []) + [resource_path]
+            for key in deps.keys():
+                if key in alias:
+                    resource_path_map[key] = (resource_path_map.get(key) or []) + [resource_path]
+        except:
+            print('Not able to parse string {0}'.format(invoke))
 
     return resource_path_map
 
 
 def analyze():
-    [*_, target] = sys.argv;
+    [*_, target] = sys.argv
     path = target
 
     if os.path.isabs(target) is False:
@@ -100,6 +109,8 @@ def analyze():
             else:
                 analyzed_lines = analyzed_lines + scan_line_with_dep_name(file.readlines(), mapped_dependencies)
                 file.close()
+
+    pprint(analyzed_lines)
 
     cleaned_data = clean_data(analyzed_lines)
     service_map = map_to_dep_dict(cleaned_data, mapped_dependencies)
