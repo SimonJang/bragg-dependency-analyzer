@@ -79,8 +79,10 @@ def map_to_dep_dict(invokes: [str], deps: {str: str}) -> {str: str}:
             for key in deps.keys():
                 if re.search(r".{0,}\." + re.escape(key) + "$", alias):
                     resource_path_map[key] = set(list((resource_path_map.get(key) or [])) + [resource_path.strip()])
+                else:
+                    resource_path_map[key] = set(list((resource_path_map.get(key) or [])))
         except:
-            print('Not able to parse string {0}'.format(invoke))
+            print(f"Not able to parse string {invoke}")
 
     return dict(map(lambda kv: (kv[0], list(kv[1])), resource_path_map.items()))
 
@@ -99,10 +101,10 @@ def analyze():
     analyzed_lines = []
     service_name = ""
 
-    for deps_file_path in glob.iglob('{0}/**/config.json'.format(path), recursive=True):
+    for deps_file_path in glob.iglob(f"{path}/**/config.json", recursive=True):
         mapped_dependencies = map_dependencies(deps_file_path)
 
-    for package_json_path in glob.iglob('{0}/**/package.json'.format(path), recursive=True):
+    for package_json_path in glob.iglob("{path}/**/package.json", recursive=True):
         if any(black_listed_dir in package_json_path for black_listed_dir in BLACKLISTED_DIRS):
             continue
 
@@ -113,7 +115,7 @@ def analyze():
 
         return
 
-    for source_file in glob.iglob('{0}/**/*.ts'.format(path), recursive=True):
+    for source_file in glob.iglob(f"{path}/**/*.ts", recursive=True):
         if any(black_listed_dir in source_file for black_listed_dir in BLACKLISTED_DIRS):
             continue
 
