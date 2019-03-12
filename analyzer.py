@@ -84,7 +84,7 @@ def map_to_dep_dict(invokes: [str], deps: {str: str}) -> {str: str}:
         except:
             print(f"Not able to parse string {invoke}")
 
-    return dict(map(lambda kv: (kv[0], list(kv[1])), resource_path_map.items()))
+    return dict(map(lambda kv: (deps.get(kv[0]), list(kv[1])), resource_path_map.items()))
 
 
 def analyze():
