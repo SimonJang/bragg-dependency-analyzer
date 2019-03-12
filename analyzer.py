@@ -53,7 +53,7 @@ def clean_data(dependency_list: [str]) -> [str]:
         for dependency in dependency_list
     ]
 
-    regex = re.compile(r"\(" + re.escape("config") + "[a-zA-z\.\,\'\s\n]{1,}")
+    regex = re.compile(r"\([a-zA-Z\.]{0,}" + re.escape("config") + "[a-zA-z\.\,\'\s\n]{1,}")
 
     matches = []
 
@@ -75,14 +75,15 @@ def map_to_dep_dict(invokes: [str], deps: {str: str}) -> {str: str}:
     for invoke in invokes:
         try:
             [alias, resource_path, *_] = invoke.split(',')
+            print(f"alias: {alias}", f"resource-path: {resource_path}")
 
             for key in deps.keys():
-                if key in alias:
-                    resource_path_map[key] = (resource_path_map.get(key) or []) + [resource_path.strip()]
+                if re.search(r".{0,}\." + re.escape(key) + "$", alias):
+                    resource_path_map[key] = set(list((resource_path_map.get(key) or [])) + [resource_path.strip()])
         except:
             print('Not able to parse string {0}'.format(invoke))
 
-    return resource_path_map
+    return dict(map(lambda kv: (kv[0], list(kv[1])), resource_path_map.items()))
 
 
 def analyze():
@@ -129,8 +130,10 @@ def analyze():
     service_map = map_to_dep_dict(cleaned_data, mapped_dependencies)
 
     destination_path = os.path.join(os.getcwd(), f"{service_name}.json")
+
     with open(destination_path, 'w') as destination:
         json.dump(service_map, destination)
+        destination.close()
 
     pprint(service_map)
 
