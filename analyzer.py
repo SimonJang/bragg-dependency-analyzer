@@ -75,7 +75,6 @@ def map_to_dep_dict(invokes: [str], deps: {str: str}) -> {str: str}:
     for invoke in invokes:
         try:
             [alias, resource_path, *_] = invoke.split(',')
-            print(f"alias: {alias}", f"resource-path: {resource_path}")
 
             for key in deps.keys():
                 if re.search(r".{0,}\." + re.escape(key) + "$", alias):
