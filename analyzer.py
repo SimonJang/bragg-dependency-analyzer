@@ -102,6 +102,9 @@ def analyze():
     service_name = ""
 
     for deps_file_path in glob.iglob(f"{path}/**/config.json", recursive=True):
+        if any(black_listed_dir in deps_file_path for black_listed_dir in BLACKLISTED_DIRS):
+            continue
+
         mapped_dependencies = map_dependencies(deps_file_path)
 
     for package_json_path in glob.iglob("{path}/**/package.json", recursive=True):
