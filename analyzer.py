@@ -11,6 +11,26 @@ SERVICE_DEPENDENCY = ':v0'
 BLACKLISTED_DIRS = ["/node_modules/", "/dist/", "/test/"]
 
 
+def is_bragg_invoke_project(path: str) -> bool:
+    with open(path) as package_json:
+        data = json.load(package_json)
+        dev_dependencies: {str, str} = data["dependencies"]
+        is_ts_project = dev_dependencies["bragg-route-invoke"]
+        package_json.close()
+
+    return bool(is_ts_project)
+
+
+def is_typescript_project(path: str) -> bool:
+    with open(path) as package_json:
+        data = json.load(package_json)
+        dev_dependencies: {str, str} = data["devDependencies"]
+        is_ts_project = dev_dependencies["typescript"]
+        package_json.close()
+
+    return bool(is_ts_project)
+
+
 def scan_line_with_dep_name(lines: [str], dep_name: {str: str}) -> [str]:
     matches = []
 
@@ -100,6 +120,18 @@ def analyze():
     mapped_dependencies = {}
     analyzed_lines = []
     service_name = ""
+    extension = None
+
+    for package_json_path in glob.iglob(f"{path}/**/package.json", recursive=True):
+        if any(black_listed_dir in package_json_path for black_listed_dir in BLACKLISTED_DIRS):
+            continue
+
+        # Early exit when no bragg-route-invoke dependency is detected as dependency
+        if is_bragg_invoke_project(package_json_path) is False:
+            return
+
+        service_name = extract_service_name(package_json_path)
+        extension = "ts" if is_typescript_project(package_json_path) else "js"
 
     for deps_file_path in glob.iglob(f"{path}/**/config.json", recursive=True):
         if any(black_listed_dir in deps_file_path for black_listed_dir in BLACKLISTED_DIRS):
@@ -107,18 +139,12 @@ def analyze():
 
         mapped_dependencies = map_dependencies(deps_file_path)
 
-    for package_json_path in glob.iglob(f"{path}/**/package.json", recursive=True):
-        if any(black_listed_dir in package_json_path for black_listed_dir in BLACKLISTED_DIRS):
-            continue
-
-        service_name = extract_service_name(package_json_path)
-
     if len(mapped_dependencies.keys()) == 0:
         print('No bragg dependencies')
 
         return
 
-    for source_file in glob.iglob(f"{path}/**/*.ts", recursive=True):
+    for source_file in glob.iglob(f"{path}/**/*.{extension}", recursive=True):
         if any(black_listed_dir in source_file for black_listed_dir in BLACKLISTED_DIRS):
             continue
 
@@ -142,7 +168,6 @@ def analyze():
         destination.close()
 
     pprint(service_map)
-
     return destination_path
 
 
