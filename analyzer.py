@@ -107,7 +107,7 @@ def analyze():
 
         mapped_dependencies = map_dependencies(deps_file_path)
 
-    for package_json_path in glob.iglob("{path}/**/package.json", recursive=True):
+    for package_json_path in glob.iglob(f"{path}/**/package.json", recursive=True):
         if any(black_listed_dir in package_json_path for black_listed_dir in BLACKLISTED_DIRS):
             continue
 
@@ -133,6 +133,8 @@ def analyze():
     cleaned_data = clean_data(analyzed_lines)
     service_map = map_to_dep_dict(cleaned_data, mapped_dependencies)
 
+    print("service name", service_name)
+
     destination_path = os.path.join(os.getcwd(), f"{service_name}.json")
 
     with open(destination_path, 'w') as destination:
@@ -141,7 +143,7 @@ def analyze():
 
     pprint(service_map)
 
-    return
+    return destination_path
 
 
 analyze()
