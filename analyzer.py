@@ -22,13 +22,18 @@ def is_bragg_invoke_project(path: str) -> bool:
 
 
 def is_typescript_project(path: str) -> bool:
-    with open(path) as package_json:
-        data = json.load(package_json)
-        dev_dependencies: {str, str} = data["devDependencies"]
-        is_ts_project = dev_dependencies["typescript"]
-        package_json.close()
+    try:
+        with open(path) as package_json:
+            data = json.load(package_json)
+            dev_dependencies: {str, str} = data["devDependencies"]
+            dev_dependencies["typescript"]
+            package_json.close()
 
-    return bool(is_ts_project)
+            return True
+    except KeyError:
+        print("No `Typescript` dependency detected")
+
+        return False
 
 
 def scan_line_with_dep_name(lines: [str], dep_name: {str: str}) -> [str]:
@@ -127,7 +132,10 @@ def analyze():
             continue
 
         # Early exit when no bragg-route-invoke dependency is detected as dependency
-        if is_bragg_invoke_project(package_json_path) is False:
+        try:
+            is_bragg_invoke_project(package_json_path)
+        except KeyError:
+            print("No `bragg-route-invoke` dependency detected")
             return
 
         service_name = extract_service_name(package_json_path)
