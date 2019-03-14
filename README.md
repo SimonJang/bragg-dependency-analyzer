@@ -2,10 +2,10 @@
 Python script to analyze the dependencies in a `bragg` project
 
 # TODO
-
-- Include JS files if it's not a typescript project
+- Include JS files if it's not a typescript project by checking typescript dependency
 - Use `package.json` dependencies to check from `bragg-route-invoke` and `typescript`
 - Map other AWS dependencies
+- Search for method
 - Create graph based on the data from the dependencies analysis
 - Work with bragg powered SDK
 
