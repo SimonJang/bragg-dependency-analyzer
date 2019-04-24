@@ -6,7 +6,9 @@ Python script to analyze the dependencies in a `bragg` project
 
 # TODO
 
-- Search for method
+- Add tests
+- Improve dependency analyzer to cover all the use cases
+- Create as seperate package
 - Create data structure for graph
 - Work with bragg powered SDK
 
