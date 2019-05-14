@@ -1,6 +1,10 @@
 # bragg-dependency-analyzer
 Python script to analyze the dependencies in a `bragg` project
 
+# How to use
+
+Run `python3 analyer.py <path to dir to analyze>`
+
 # Nice to have
 - Map other AWS dependencies
 
